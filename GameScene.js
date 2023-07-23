@@ -1,6 +1,15 @@
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
+
+        // Define as variáveis de velocidade para o jogo
+        this.velocidadeJogador = 200;
+        this.velocidadeTiro = 400;
+        this.velocidadeInimigo = 100;
+        this.velocidadeTiroInimigo = 200;
+        this.intervaloAparicaoInimigo = 2000; // em ms
+        this.intervaloDisparo = 200; // em ms
+        this.intervaloDisparoInimigo = 1000; // em ms
     }
 
     preload() {
@@ -11,8 +20,6 @@ class GameScene extends Phaser.Scene {
         this.load.image('background', 'assets/background.png');
         this.load.image('enemy', 'assets/enemy.png');
         this.load.image('enemyBullet', 'assets/enemyBullet.png');
-
-
     }
 
     create() {
@@ -28,30 +35,27 @@ class GameScene extends Phaser.Scene {
         this.score = 0;
         this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#FFF' });
 
-
         this.enemies = this.physics.add.group();
         this.enemyBullets = this.physics.add.group({
             defaultKey: 'enemyBullet',
             maxSize: 30
         });
 
-        // Cria um inimigo a cada 2 segundos
+        // Cria um inimigo a cada 'intervaloAparicaoInimigo' milissegundos
         this.time.addEvent({
-            delay: 2000, // milissegundos
+            delay: this.intervaloAparicaoInimigo,
             callback: this.createEnemy,
             callbackScope: this,
             loop: true
         });
 
-        // Dispara um projétil a cada 2 segundo
+        // Dispara um projétil inimigo a cada 'intervaloDisparoInimigo' milissegundos
         this.time.addEvent({
-            delay: 200, // milissegundos
+            delay: this.intervaloDisparoInimigo,
             callback: this.shootEnemyBullet,
             callbackScope: this,
             loop: true
         });
-
-
 
         // grupo de projéteis
         this.bullets = this.physics.add.group({
@@ -59,24 +63,27 @@ class GameScene extends Phaser.Scene {
             maxSize: 30
         });
 
-        // disparo automático de projéteis
+        // Dispara um projétil a cada 'intervaloDisparo' milissegundos
         this.time.addEvent({
-            delay: 200, // milissegundos
+            delay: this.intervaloDisparo,
             callback: this.shootBullet,
             callbackScope: this,
             loop: true
         });
 
         // botões de controle
-        this.leftButton = this.physics.add.sprite(50, this.game.config.height - 100, 'leftButton').setInteractive();
-        this.rightButton = this.physics.add.sprite(this.game.config.width - 50, this.game.config.height - 100, 'rightButton').setInteractive();
-        this.leftButton.setScale(0.3);
-        this.rightButton.setScale(0.3);
+        this.leftButton = this.physics.add.sprite(0, this.game.config.height, 'leftButton').setInteractive().setOrigin(0, 1);
+        this.rightButton = this.physics.add.sprite(this.game.config.width / 2, this.game.config.height, 'rightButton').setInteractive().setOrigin(0, 1);
+
+        // Escalar os botões para caber 50% da largura da tela
+        let scaleX = (0.5 * this.game.config.width) / this.leftButton.width;
+        let scaleY = 100 / this.leftButton.height;
+        this.leftButton.setScale(scaleX, scaleY);
+        this.rightButton.setScale(scaleX, scaleY);
 
         // eventos de toque
-        this.leftButton.on('pointerdown', () => this.ship.setVelocityX(-200));
-        this.rightButton.on('pointerdown', () => this.ship.setVelocityX(200));
-
+        this.leftButton.on('pointerdown', () => this.ship.setVelocityX(-this.velocidadeJogador));
+        this.rightButton.on('pointerdown', () => this.ship.setVelocityX(this.velocidadeJogador));
 
         // Colisão entre os projéteis do jogador e os inimigos
         this.physics.add.collider(this.bullets, this.enemies, this.hitEnemy, null, this);
@@ -89,8 +96,20 @@ class GameScene extends Phaser.Scene {
 
     //adiciona score
     addScore() {
-        this.score += 10;
+        this.score += 50;
         this.scoreText.setText('Score: ' + this.score);
+
+        // Verifica se a pontuação é um múltiplo de 100
+        if (this.score % 100 === 0) {
+            // Se for, aumenta todas as velocidades em 20%
+            this.velocidadeJogador *= 1.1;
+            this.velocidadeTiro *= 1.2;
+            this.velocidadeInimigo *= 1.1;
+            this.velocidadeTiroInimigo *= 1.2;
+            this.intervaloAparicaoInimigo *= 1.3; // em ms
+            this.intervaloDisparo *= 1.5; // em ms
+            this.intervaloDisparoInimigo *= 1.3; // em ms
+        }
     }
 
     hitPlayer(ship, enemyBullet) {
@@ -101,31 +120,33 @@ class GameScene extends Phaser.Scene {
 
         // Pare a música quando o jogador é atingido
         this.sound.get('backgroundMusic').stop();
-
+        this.velocidadeJogador = 200;
+        this.velocidadeTiro = 400;
+        this.velocidadeInimigo = 100;
+        this.velocidadeTiroInimigo = 200;
+        this.intervaloAparicaoInimigo = 2000; // em ms
+        this.intervaloDisparo = 200; // em ms
+        this.intervaloDisparoInimigo = 1000; // em ms
         // Aqui você pode adicionar código para terminar o jogo ou perder uma vida, por exemplo
         this.scene.start('EndGameScene', { score: this.score });
     }
 
     hitEnemy(bullet, enemy) {
-        bullet.setActive(false);
-        bullet.setVisible(false);
-        enemy.setActive(false);
-        enemy.setVisible(false);
+        bullet.destroy();
+        enemy.destroy();
         //adiciona score ao abater nave inimiga.
         this.addScore();
     }
 
     hitBullet(playerBullet, enemyBullet) {
-        playerBullet.setActive(false);
-        playerBullet.setVisible(false);
-        enemyBullet.setActive(false);
-        enemyBullet.setVisible(false);
+        playerBullet.destroy();
+        enemyBullet.destroy();
     }
 
     createEnemy() {
         let x = Phaser.Math.Between(50, this.game.config.width - 50);
         let enemy = this.enemies.create(x, 0, 'enemy').setScale(0.1);
-        enemy.setVelocityY(100);
+        enemy.setVelocityY(this.velocidadeInimigo);
     }
 
     shootEnemyBullet() {
@@ -135,7 +156,7 @@ class GameScene extends Phaser.Scene {
                 if (bullet) {
                     bullet.setActive(true);
                     bullet.setVisible(true);
-                    bullet.body.velocity.y = 400;
+                    bullet.body.velocity.y = this.velocidadeTiroInimigo;
                 }
             }
         }, this);
@@ -150,7 +171,6 @@ class GameScene extends Phaser.Scene {
             }
         }, this);
 
-
         this.enemyBullets.children.each((bullet) => {
             if (bullet.active && bullet.y > this.game.config.height) {
                 bullet.setActive(false);
@@ -164,7 +184,7 @@ class GameScene extends Phaser.Scene {
         if (bullet) {
             bullet.setActive(true);
             bullet.setVisible(true);
-            bullet.body.velocity.y = -400;
+            bullet.body.velocity.y = -this.velocidadeTiro;
         }
     }
 }
