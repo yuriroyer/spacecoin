@@ -23,6 +23,8 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+
+        
         //add background para pegar na tela toda
         this.background = this.add.tileSprite(0, 0, this.game.config.width, this.game.config.height, 'background');
         this.background.setOrigin(0, 0);
@@ -145,7 +147,7 @@ class GameScene extends Phaser.Scene {
 
     createEnemy() {
         let x = Phaser.Math.Between(50, this.game.config.width - 50);
-        let enemy = this.enemies.create(x, 0, 'enemy').setScale(0.1);
+        let enemy = this.enemies.create(x, 0, 'enemy').setScale(0.2);
         enemy.setVelocityY(this.velocidadeInimigo);
     }
 
@@ -163,6 +165,7 @@ class GameScene extends Phaser.Scene {
     }
 
     update() {
+
         // limpa os projéteis ao sair da tela
         this.bullets.children.each((bullet) => {
             if (bullet.active && bullet.y < 0) {
@@ -177,6 +180,7 @@ class GameScene extends Phaser.Scene {
                 bullet.setVisible(false);
             }
         }, this);
+
     }
 
     shootBullet() {
